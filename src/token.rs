@@ -50,7 +50,7 @@ pub struct Token {
     pub column: usize,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Hash, Copy, PartialEq, Eq)]
 pub enum TokenKind {
     // --- Single-character symbols ---
     LeftParen,    // "("

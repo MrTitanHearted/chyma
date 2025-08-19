@@ -1,4 +1,6 @@
+mod ast;
 mod lexer;
+mod parser;
 mod token;
 
 use std::{fs::File, io::Read};
@@ -15,22 +17,25 @@ struct Args {
 }
 
 fn main() -> std::io::Result<()> {
-    let args = Args::parse();
+    if let Err(err) = main_entry() {
+        panic!("{err}");
+    }
 
+    Ok(())
+}
+
+fn main_entry() -> Result<(), Box<dyn std::error::Error>> {
     let mut source = String::new();
-
+    
+    let args = Args::parse();
     File::open(args.input)?.read_to_string(&mut source)?;
 
-    let tokens = match Lexer::lex(&source) {
-        Ok(tokens) => tokens,
-        Err(err) => {
-            panic!("\n{err}\n")
-        }
-    };
+    let tokens = Lexer::lex(&source)?;
 
-    for token in &tokens {
-        println!("{token}");
-    }
+    let expr = parser::Parser::parse(&tokens)?;
+
+    // println!("Final: {}", expr.as_ref());
+    dbg!(expr);
 
     Ok(())
 }
