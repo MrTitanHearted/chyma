@@ -109,12 +109,18 @@ pub enum TokenKind {
     ShiftLeftEqual,  // "<<="
     ShiftRightEqual, // ">>="
 
+    // --- Range operators ---
+    DotDot,      // ..
+    DotDotEqual, // ..=
+
+    // --- Identifier ---
+    Identifier, // e.g. foo, bar, baz
+
     // --- Literals ---
-    Identifier,     // e.g. foo, bar, baz
     IntegerLiteral, // e.g. 123, 0xff, 42u8
     FloatLiteral,   // e.g. 3.14, 2.0f64
-    StringLiteral,  // e.g. "hello"
     CharLiteral,    // e.g. 'a'
+    StringLiteral,  // e.g. "hello"
 
     // --- Keywords ---
     Const,     // "const"
@@ -215,6 +221,10 @@ impl fmt::Display for TokenKind {
             TokenKind::ShiftLeftEqual => "<<=",
             TokenKind::ShiftRightEqual => ">>=",
 
+            // --- Range operators ---
+            TokenKind::DotDot => "..",
+            TokenKind::DotDotEqual => "..=",
+
             // --- Literals ---
             TokenKind::Identifier => "identifier",
             TokenKind::IntegerLiteral => "integer literal",
@@ -271,5 +281,44 @@ impl fmt::Display for Token {
             "[line {}, col {}]: kind: {}, lexeme: '{}'",
             self.line, self.column, self.kind, self.lexeme
         )
+    }
+}
+
+impl Token {
+    pub fn is_primitive_type(&self) -> bool {
+        return self.lexeme.eq("i8")
+            | self.lexeme.eq("i16")
+            | self.lexeme.eq("i32")
+            | self.lexeme.eq("i64")
+            | self.lexeme.eq("i128")
+            | self.lexeme.eq("isize")
+            | self.lexeme.eq("u8")
+            | self.lexeme.eq("u16")
+            | self.lexeme.eq("u32")
+            | self.lexeme.eq("u64")
+            | self.lexeme.eq("u128")
+            | self.lexeme.eq("usize")
+            | self.lexeme.eq("f32")
+            | self.lexeme.eq("f64")
+            | self.lexeme.eq("bool")
+            | self.lexeme.eq("char")
+            | self.lexeme.eq("string")
+            | self.lexeme.eq("void");
+    }
+
+    pub fn is_function_type(&self) -> bool {
+        self.lexeme.eq("fun")
+    }
+
+    pub fn is_type_start(&self) -> bool {
+        self.is_primitive_type()
+            || self.kind == TokenKind::Star
+            || self.kind == TokenKind::LeftBracket
+            || self.kind == TokenKind::LeftParen
+            || self.is_function_type()
+            || self.kind == TokenKind::Identifier
+            || self.kind == TokenKind::SelfType
+            || self.kind == TokenKind::Crate
+            || self.kind == TokenKind::Super
     }
 }

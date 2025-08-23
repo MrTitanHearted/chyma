@@ -26,7 +26,7 @@ fn main() -> std::io::Result<()> {
 
 fn main_entry() -> Result<(), Box<dyn std::error::Error>> {
     let mut source = String::new();
-    
+
     let args = Args::parse();
     File::open(args.input)?.read_to_string(&mut source)?;
 

@@ -314,7 +314,7 @@ This BNF grammar defines the complete syntax for the Chyma programming language.
 
 <constant_declaration> ::= <visibility>? "const" <identifier> ":" <type> "=" <expression> ";"?
 
-<break_statement> ::= "break" (<expression>? <label>?)? ";"?
+<break_statement> ::= "break" <expression>? <label>? ";"?
 
 <continue_statement> ::= "continue" <label>? ";"?
 

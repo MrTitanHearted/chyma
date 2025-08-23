@@ -72,12 +72,22 @@ impl<'a> Lexer<'a> {
             '[' => self.add_token(TokenKind::LeftBracket),
             ']' => self.add_token(TokenKind::RightBracket),
             ',' => self.add_token(TokenKind::Comma),
-            '.' => self.add_token(TokenKind::Dot),
             ';' => self.add_token(TokenKind::Semicolon),
             ':' => self.add_token(TokenKind::Colon),
             '~' => self.add_token(TokenKind::Tilde),
 
             // Operators that might be compound
+            '.' => {
+                if self.match_char_then_advance('.') {
+                    if self.match_char_then_advance('=') {
+                        self.add_token(TokenKind::DotDotEqual)
+                    } else {
+                        self.add_token(TokenKind::DotDot)
+                    }
+                } else {
+                    self.add_token(TokenKind::Dot)
+                }
+            }
             '+' => {
                 if self.match_char_then_advance('=') {
                     self.add_token(TokenKind::PlusEqual);
