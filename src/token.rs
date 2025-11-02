@@ -33,9 +33,9 @@ pub static KEYWORDS: LazyLock<HashMap<&'static str, TokenKind>> = LazyLock::new(
     m.insert("self", TokenKind::SelfValue);
     m.insert("Self", TokenKind::SelfType);
     m.insert("true", TokenKind::True);
-    m.insert("typeof", TokenKind::Typeof);
     m.insert("use", TokenKind::Use);
-    m.insert("var", TokenKind::Var);
+    m.insert("let", TokenKind::Let);
+    m.insert("mut", TokenKind::Mut);
     m.insert("void", TokenKind::Void);
     m.insert("while", TokenKind::While);
 
@@ -63,8 +63,8 @@ pub enum TokenKind {
     Dot,          // "."
     Semicolon,    // ";"
     Colon,        // ":"
-    // At,           // "@"
-    // Hash,         // "#"
+    At,           // "@"
+    Hash,         // "#"
 
     // --- Logical operators ---
     AmpersandAmpersand, // "&&"
@@ -148,14 +148,14 @@ pub enum TokenKind {
     Null,      // "null"
     As,        // "as"
     Use,       // "use"
-    Var,       // "var"
+    Let,       // "let"
+    Mut,       // "mut"
     Void,      // "void"
     Mod,       // "mod"
     Pub,       // "pub"
     Extern,    // "extern"
     Match,     // "match"
     Panic,     // "panic"
-    Typeof,    // "typeof"
 
     // --- End of input ---
     Eof, // End of file/input
@@ -175,8 +175,8 @@ impl fmt::Display for TokenKind {
             TokenKind::Dot => ".",
             TokenKind::Semicolon => ";",
             TokenKind::Colon => ":",
-            // TokenKind::At => "@",
-            // TokenKind::Hash => "#",
+            TokenKind::At => "@",
+            TokenKind::Hash => "#",
 
             // --- Logical operators ---
             TokenKind::AmpersandAmpersand => "&&",
@@ -258,14 +258,14 @@ impl fmt::Display for TokenKind {
             TokenKind::Null => "null",
             TokenKind::As => "as",
             TokenKind::Use => "use",
-            TokenKind::Var => "var",
+            TokenKind::Let => "let",
+            TokenKind::Mut => "mut",
             TokenKind::Void => "void",
             TokenKind::Mod => "mod",
             TokenKind::Pub => "pub",
             TokenKind::Extern => "extern",
             TokenKind::Match => "match",
             TokenKind::Panic => "panic",
-            TokenKind::Typeof => "typeof",
 
             // --- End of input ---
             TokenKind::Eof => "EOF",
@@ -286,7 +286,9 @@ impl fmt::Display for Token {
 
 impl Token {
     pub fn is_primitive_type(&self) -> bool {
-        return self.lexeme.eq("i8")
+        self.lexeme.eq("void")
+            | self.lexeme.eq("bool")
+            | self.lexeme.eq("i8")
             | self.lexeme.eq("i16")
             | self.lexeme.eq("i32")
             | self.lexeme.eq("i64")
@@ -300,25 +302,7 @@ impl Token {
             | self.lexeme.eq("usize")
             | self.lexeme.eq("f32")
             | self.lexeme.eq("f64")
-            | self.lexeme.eq("bool")
             | self.lexeme.eq("char")
-            | self.lexeme.eq("string")
-            | self.lexeme.eq("void");
-    }
-
-    pub fn is_function_type(&self) -> bool {
-        self.lexeme.eq("fun")
-    }
-
-    pub fn is_type_start(&self) -> bool {
-        self.is_primitive_type()
-            || self.kind == TokenKind::Star
-            || self.kind == TokenKind::LeftBracket
-            || self.kind == TokenKind::LeftParen
-            || self.is_function_type()
-            || self.kind == TokenKind::Identifier
-            || self.kind == TokenKind::SelfType
-            || self.kind == TokenKind::Crate
-            || self.kind == TokenKind::Super
+        // | self.lexeme.eq("string")
     }
 }

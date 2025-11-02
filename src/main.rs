@@ -3,13 +3,14 @@ mod lexer;
 mod parser;
 mod token;
 
+use lexer::Lexer;
 use std::{fs::File, io::Read};
 
 use clap::Parser;
 
-use lexer::Lexer;
+use crate::ast::{FlatASTFormatter, TreeASTFormatter};
 
-#[derive(Parser, Debug)]
+#[derive(clap::Parser, Debug)]
 #[command(author, version, about, long_about = None)]
 struct Args {
     #[arg(short, long, help = "Path to the input file")]
@@ -27,15 +28,18 @@ fn main() -> std::io::Result<()> {
 fn main_entry() -> Result<(), Box<dyn std::error::Error>> {
     let mut source = String::new();
 
-    let args = Args::parse();
+    println!("{}", size_of::<String>());
+
     File::open(args.input)?.read_to_string(&mut source)?;
 
     let tokens = Lexer::lex(&source)?;
 
-    let expr = parser::Parser::parse(&tokens)?;
+    let mut parser = parser::Parser::new();
 
-    // println!("Final: {}", expr.as_ref());
-    dbg!(expr);
+    let ast = parser.parse(&tokens)?;
 
+    println!("{}", TreeASTFormatter::new(&ast));
+    println!("{}", FlatASTFormatter::new(&ast));
+    
     Ok(())
 }

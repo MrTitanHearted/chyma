@@ -75,6 +75,8 @@ impl<'a> Lexer<'a> {
             ';' => self.add_token(TokenKind::Semicolon),
             ':' => self.add_token(TokenKind::Colon),
             '~' => self.add_token(TokenKind::Tilde),
+            '@' => self.add_token(TokenKind::At),
+            '#' => self.add_token(TokenKind::Hash),
 
             // Operators that might be compound
             '.' => {
@@ -223,7 +225,6 @@ impl<'a> Lexer<'a> {
         Ok(())
     }
 
-    // Helper methods that need to be added to the Lexer implementation
     fn match_char_then_advance(&mut self, expected: char) -> bool {
         if self.peek() == Some(expected) {
             self.advance();
