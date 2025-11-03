@@ -55,7 +55,7 @@ pub(super) trait ILedHandler {
     fn get_precedence(&self) -> Precedence;
 }
 
-impl Parser {
+impl<'a, 'b> Parser<'a, 'b> {
     pub(super) fn parse_expression(&mut self, precedence: Precedence) -> ParserResult<ExpressionID> {
         let mut left = self.get_current_kind().unwrap().nud(self)?;
 

@@ -3,7 +3,7 @@ use std::fmt;
 use crate::{ast::AST, token::Token};
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct ExpressionID(pub usize);
+pub struct ExpressionID(pub u32);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Expression {
@@ -24,7 +24,7 @@ pub enum Expression {
     },
 }
 
-impl AST {
+impl<'a> AST<'a> {
     pub fn add_expression_binary(
         &mut self,
         left: ExpressionID,
@@ -39,7 +39,7 @@ impl AST {
             right,
         });
 
-        ExpressionID(index)
+        ExpressionID(index as u32)
     }
 
     pub fn add_expression_unary(&mut self, operator: Token, right: ExpressionID) -> ExpressionID {
@@ -47,7 +47,7 @@ impl AST {
 
         self.expressions.push(Expression::Unary { operator, right });
 
-        ExpressionID(index)
+        ExpressionID(index as u32)
     }
 
     pub fn add_expression_literal(&mut self, token: Token) -> ExpressionID {
@@ -55,7 +55,7 @@ impl AST {
 
         self.expressions.push(Expression::Literal { token });
 
-        ExpressionID(index)
+        ExpressionID(index as u32)
     }
 
     pub fn add_expression_identifier(&mut self, token: Token) -> ExpressionID {
@@ -63,11 +63,11 @@ impl AST {
 
         self.expressions.push(Expression::Identifier { token });
 
-        ExpressionID(index)
+        ExpressionID(index as u32)
     }
 
     pub fn get_expression(&self, id: ExpressionID) -> Option<&Expression> {
-        self.expressions.get(id.0)
+        self.expressions.get(id.0 as usize)
     }
 }
 

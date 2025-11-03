@@ -7,3 +7,4 @@ about = "My an abomination of a programming language compiler toolset: like Chym
 
 [dependencies]
 clap = { version = "4.5.45", features = ["derive"] }
+inkwell = { version = "0.6.0", features = ["llvm18-1"] }

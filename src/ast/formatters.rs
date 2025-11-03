@@ -5,23 +5,23 @@ use crate::ast::{
 };
 
 #[derive(Debug)]
-pub struct FlatASTFormatter<'ast> {
-    ast: &'ast AST,
+pub struct FlatASTFormatter<'ast, 'interner> {
+    ast: &'ast AST<'interner>,
 }
 
 #[derive(Debug)]
-pub struct TreeASTFormatter<'ast> {
-    ast: &'ast AST,
+pub struct TreeASTFormatter<'ast, 'interner> {
+    ast: &'ast AST<'interner>,
 }
 
-impl<'ast> FlatASTFormatter<'ast> {
-    pub fn new(ast: &'ast AST) -> Self {
+impl<'ast, 'interner> FlatASTFormatter<'ast, 'interner> {
+    pub fn new(ast: &'ast AST<'interner>) -> Self {
         Self { ast }
     }
 }
 
-impl<'ast> TreeASTFormatter<'ast> {
-    pub fn new(ast: &'ast AST) -> Self {
+impl<'ast, 'interner> TreeASTFormatter<'ast, 'interner> {
+    pub fn new(ast: &'ast AST<'interner>) -> Self {
         Self { ast }
     }
 
@@ -40,22 +40,42 @@ impl<'ast> TreeASTFormatter<'ast> {
                     operator,
                     right,
                 } => {
-                    writeln!(f, "{}Binary '{}'", indent_str, operator.lexeme)?;
+                    writeln!(
+                        f,
+                        "{}Binary '{}'",
+                        indent_str,
+                        self.ast.interner.get_str_or_empty(operator.lexeme)
+                    )?;
                     write!(f, "{}├─ left: ", indent_str)?;
                     self.format_expression(f, *left, indent + 1)?;
                     write!(f, "{}└─ right: ", indent_str)?;
                     self.format_expression(f, *right, indent + 1)?;
                 }
                 Expression::Unary { operator, right } => {
-                    writeln!(f, "{}Unary '{}'", indent_str, operator.lexeme)?;
+                    writeln!(
+                        f,
+                        "{}Unary '{}'",
+                        indent_str,
+                        self.ast.interner.get_str_or_empty(operator.lexeme)
+                    )?;
                     write!(f, "{}└─ operand: ", indent_str)?;
                     self.format_expression(f, *right, indent + 1)?;
                 }
                 Expression::Literal { token } => {
-                    writeln!(f, "{}Literal '{}'", indent_str, token.lexeme)?;
+                    writeln!(
+                        f,
+                        "{}Literal '{}'",
+                        indent_str,
+                        self.ast.interner.get_str_or_empty(token.lexeme)
+                    )?;
                 }
                 Expression::Identifier { token } => {
-                    writeln!(f, "{}Identifier '{}'", indent_str, token.lexeme)?;
+                    writeln!(
+                        f,
+                        "{}Identifier '{}'",
+                        indent_str,
+                        self.ast.interner.get_str_or_empty(token.lexeme)
+                    )?;
                 }
             }
         }
@@ -105,7 +125,10 @@ impl<'ast> TreeASTFormatter<'ast> {
                     writeln!(
                         f,
                         "Statement[{}] Assignment '{}'",
-                        stmt_id, assignment_operator.lexeme
+                        stmt_id,
+                        self.ast
+                            .interner
+                            .get_str_or_empty(assignment_operator.lexeme)
                     )?;
                     write!(f, "{}├─ target: ", indent_str)?;
                     self.format_expression(f, *assignee, indent + 1)?;
@@ -155,21 +178,24 @@ impl<'ast> TreeASTFormatter<'ast> {
                     self.format_statement(f, *statement, indent + 1)?;
                 }
                 Declaration::Let {
-                    let_token: _,
-                    mut_token,
+                    is_mutable,
                     identifier,
-                    type_token,
+                    type_id,
                     initializer,
                 } => {
                     write!(f, "Declaration[{}] Let", decl_id)?;
-                    if mut_token.is_some() {
+                    if *is_mutable {
                         write!(f, " (mutable)")?;
                     }
-                    writeln!(f, " '{}'", identifier.lexeme)?;
+                    writeln!(
+                        f,
+                        " '{}'",
+                        self.ast.interner.get_str_or_empty(identifier.lexeme)
+                    )?;
 
                     let has_init = initializer.is_some();
 
-                    if let Some(type_id) = type_token {
+                    if let Some(type_id) = type_id {
                         let prefix = if has_init { "├─" } else { "└─" };
                         write!(f, "{}{} type: ", indent_str, prefix)?;
                         self.format_type(f, *type_id, indent + 1)?;
@@ -181,18 +207,16 @@ impl<'ast> TreeASTFormatter<'ast> {
                     }
                 }
                 Declaration::Function {
-                    fun_token: _,
                     identifier,
-                    left_paren: _,
                     parameters,
-                    right_paren: _,
                     return_type,
                     body,
                 } => {
                     writeln!(
                         f,
                         "Declaration[{}] Function '{}'",
-                        decl_id, identifier.lexeme
+                        decl_id,
+                        self.ast.interner.get_str_or_empty(identifier.lexeme)
                     )?;
 
                     let has_body = true;
@@ -218,7 +242,9 @@ impl<'ast> TreeASTFormatter<'ast> {
                             write!(
                                 f,
                                 "{}   {}{}: ",
-                                indent_str, param_prefix, param_name.lexeme
+                                indent_str,
+                                param_prefix,
+                                self.ast.interner.get_str_or_empty(param_name.lexeme)
                             )?;
                             self.format_type(f, *param_type, indent + 2)?;
                         }
@@ -242,7 +268,7 @@ impl<'ast> TreeASTFormatter<'ast> {
     }
 }
 
-impl<'ast> fmt::Display for FlatASTFormatter<'ast> {
+impl<'ast, 'interner> fmt::Display for FlatASTFormatter<'ast, 'interner> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "=== AST Flat View ===")?;
         writeln!(
@@ -278,21 +304,32 @@ impl<'ast> fmt::Display for FlatASTFormatter<'ast> {
                         writeln!(
                             f,
                             "Binary    (left: [{}], op: '{}', right: [{}])",
-                            left, operator.lexeme, right
+                            left,
+                            self.ast.interner.get_str_or_empty(operator.lexeme),
+                            right
                         )?;
                     }
                     Expression::Unary { operator, right } => {
                         writeln!(
                             f,
                             "Unary     (op: '{}', operand: [{}])",
-                            operator.lexeme, right
+                            self.ast.interner.get_str_or_empty(operator.lexeme),
+                            right
                         )?;
                     }
                     Expression::Literal { token } => {
-                        writeln!(f, "Literal   '{}'", token.lexeme)?;
+                        writeln!(
+                            f,
+                            "Literal   '{}'",
+                            self.ast.interner.get_str_or_empty(token.lexeme)
+                        )?;
                     }
                     Expression::Identifier { token } => {
-                        writeln!(f, "Identifier '{}'", token.lexeme)?;
+                        writeln!(
+                            f,
+                            "Identifier '{}'",
+                            self.ast.interner.get_str_or_empty(token.lexeme)
+                        )?;
                     }
                 }
             }
@@ -316,7 +353,11 @@ impl<'ast> fmt::Display for FlatASTFormatter<'ast> {
                         writeln!(
                             f,
                             "Assignment  (target: expression[{}] {} value: expression[{}])",
-                            assignee, assignment_operator.lexeme, assignment_value
+                            assignee,
+                            self.ast
+                                .interner
+                                .get_str_or_empty(assignment_operator.lexeme),
+                            assignment_value
                         )?;
                     }
                     Statement::Block { declarations } => {
@@ -355,19 +396,18 @@ impl<'ast> fmt::Display for FlatASTFormatter<'ast> {
                         writeln!(f, "Statement   (statement[{}])", statement)?;
                     }
                     Declaration::Let {
-                        let_token: _,
-                        mut_token,
+                        is_mutable,
                         identifier,
-                        type_token,
+                        type_id,
                         initializer,
                     } => {
                         write!(
                             f,
                             "Let         {}{}",
-                            if mut_token.is_some() { "mut " } else { "" },
-                            identifier.lexeme
+                            if *is_mutable { "mut " } else { "" },
+                            self.ast.interner.get_str_or_empty(identifier.lexeme)
                         )?;
-                        if let Some(type_id) = type_token {
+                        if let Some(type_id) = type_id {
                             write!(f, ": type[{}]", type_id)?;
                         }
                         if let Some(expr_id) = initializer {
@@ -376,20 +416,26 @@ impl<'ast> fmt::Display for FlatASTFormatter<'ast> {
                         writeln!(f)?;
                     }
                     Declaration::Function {
-                        fun_token: _,
                         identifier,
-                        left_paren: _,
                         parameters,
-                        right_paren: _,
                         return_type,
                         body,
                     } => {
-                        write!(f, "Function    '{}'(", identifier.lexeme)?;
+                        write!(
+                            f,
+                            "Function    '{}'(",
+                            self.ast.interner.get_str_or_empty(identifier.lexeme)
+                        )?;
                         for (i, (param_name, param_type)) in parameters.iter().enumerate() {
                             if i > 0 {
                                 write!(f, ", ")?;
                             }
-                            write!(f, "{}: type[{}]", param_name.lexeme, param_type)?;
+                            write!(
+                                f,
+                                "{}: type[{}]",
+                                self.ast.interner.get_str_or_empty(param_name.lexeme),
+                                param_type
+                            )?;
                         }
                         write!(f, ")")?;
                         if let Some(ret_type) = return_type {
@@ -405,7 +451,7 @@ impl<'ast> fmt::Display for FlatASTFormatter<'ast> {
     }
 }
 
-impl<'ast> fmt::Display for TreeASTFormatter<'ast> {
+impl<'ast, 'interner> fmt::Display for TreeASTFormatter<'ast, 'interner> {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
         writeln!(f, "=== AST Tree View ===")?;
         writeln!(
@@ -426,8 +472,8 @@ impl<'ast> fmt::Display for TreeASTFormatter<'ast> {
 
         // Only display root-level declarations (those not nested in blocks)
         for (id, _) in self.ast.declarations.iter().enumerate() {
-            if !nested_declarations.contains(&id) {
-                self.format_declaration(f, DeclarationID(id), 0)?;
+            if !nested_declarations.contains(&(id as u32)) {
+                self.format_declaration(f, DeclarationID(id as u32), 0)?;
                 writeln!(f)?;
             }
         }

@@ -1,5 +1,9 @@
 use std::{collections::HashMap, fmt, sync::LazyLock};
 
+mod string_interner;
+
+pub use string_interner::*;
+
 pub static KEYWORDS: LazyLock<HashMap<&'static str, TokenKind>> = LazyLock::new(|| {
     let mut m = HashMap::new();
 
@@ -42,12 +46,12 @@ pub static KEYWORDS: LazyLock<HashMap<&'static str, TokenKind>> = LazyLock::new(
     m
 });
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
-    pub lexeme: String,
-    pub line: usize,
-    pub column: usize,
+    pub lexeme: TokenStringID,
+    pub line: u32,
+    pub column: u32,
 }
 
 #[derive(Debug, Clone, Hash, Copy, PartialEq, Eq)]
@@ -274,35 +278,25 @@ impl fmt::Display for TokenKind {
     }
 }
 
-impl fmt::Display for Token {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(
-            f,
-            "[line {}, col {}]: kind: {}, lexeme: '{}'",
-            self.line, self.column, self.kind, self.lexeme
-        )
-    }
-}
-
 impl Token {
-    pub fn is_primitive_type(&self) -> bool {
-        self.lexeme.eq("void")
-            | self.lexeme.eq("bool")
-            | self.lexeme.eq("i8")
-            | self.lexeme.eq("i16")
-            | self.lexeme.eq("i32")
-            | self.lexeme.eq("i64")
-            | self.lexeme.eq("i128")
-            | self.lexeme.eq("isize")
-            | self.lexeme.eq("u8")
-            | self.lexeme.eq("u16")
-            | self.lexeme.eq("u32")
-            | self.lexeme.eq("u64")
-            | self.lexeme.eq("u128")
-            | self.lexeme.eq("usize")
-            | self.lexeme.eq("f32")
-            | self.lexeme.eq("f64")
-            | self.lexeme.eq("char")
-        // | self.lexeme.eq("string")
+    pub fn is_primitive_type(&self, interner: &TokenStringInterner) -> bool {
+        interner.contains_and_is_equal("void", self.lexeme)
+            | interner.contains_and_is_equal("bool", self.lexeme)
+            | interner.contains_and_is_equal("i8", self.lexeme)
+            | interner.contains_and_is_equal("i16", self.lexeme)
+            | interner.contains_and_is_equal("i32", self.lexeme)
+            | interner.contains_and_is_equal("i64", self.lexeme)
+            | interner.contains_and_is_equal("i128", self.lexeme)
+            | interner.contains_and_is_equal("isize", self.lexeme)
+            | interner.contains_and_is_equal("u8", self.lexeme)
+            | interner.contains_and_is_equal("u16", self.lexeme)
+            | interner.contains_and_is_equal("u32", self.lexeme)
+            | interner.contains_and_is_equal("u64", self.lexeme)
+            | interner.contains_and_is_equal("u128", self.lexeme)
+            | interner.contains_and_is_equal("usize", self.lexeme)
+            | interner.contains_and_is_equal("f32", self.lexeme)
+            | interner.contains_and_is_equal("f64", self.lexeme)
+            | interner.contains_and_is_equal("char", self.lexeme)
+        // | interner.contains_and_is_equal("string", self.lexeme)
     }
 }

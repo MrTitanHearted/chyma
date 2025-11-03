@@ -6,7 +6,7 @@ use crate::{
 };
 
 #[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
-pub struct StatementID(pub usize);
+pub struct StatementID(pub u32);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Statement {
@@ -22,18 +22,17 @@ pub enum Statement {
         declarations: Vec<DeclarationID>,
     },
     Return {
-        return_token: Token,
         return_value: Option<ExpressionID>,
     },
 }
 
-impl AST {
+impl<'a> AST<'a> {
     pub fn add_statement_expression(&mut self, expression: ExpressionID) -> StatementID {
         let index = self.statements.len();
 
         self.statements.push(Statement::Expression { expression });
 
-        StatementID(index)
+        StatementID(index as u32)
     }
 
     pub fn add_statement_assignment(
@@ -50,7 +49,7 @@ impl AST {
             assignment_value,
         });
 
-        StatementID(index)
+        StatementID(index as u32)
     }
 
     pub fn add_statement_block(&mut self, declarations: Vec<DeclarationID>) -> StatementID {
@@ -58,26 +57,19 @@ impl AST {
 
         self.statements.push(Statement::Block { declarations });
 
-        StatementID(index)
+        StatementID(index as u32)
     }
 
-    pub fn add_statement_return(
-        &mut self,
-        return_token: Token,
-        return_value: Option<ExpressionID>,
-    ) -> StatementID {
+    pub fn add_statement_return(&mut self, return_value: Option<ExpressionID>) -> StatementID {
         let index = self.statements.len();
 
-        self.statements.push(Statement::Return {
-            return_token,
-            return_value,
-        });
+        self.statements.push(Statement::Return { return_value });
 
-        StatementID(index)
+        StatementID(index as u32)
     }
 
     pub fn get_statement(&self, id: StatementID) -> Option<&Statement> {
-        self.statements.get(id.0)
+        self.statements.get(id.0 as usize)
     }
 }
 

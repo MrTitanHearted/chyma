@@ -4,7 +4,7 @@ use crate::{
     token::TokenKind,
 };
 
-impl Parser {
+impl<'a, 'b> Parser<'a, 'b> {
     pub(super) fn parse_statement(&mut self) -> ParserResult<StatementID> {
         let current_kind = self.get_current_kind().unwrap();
 
@@ -33,7 +33,7 @@ impl Parser {
     }
 
     fn parse_statement_return(&mut self) -> ParserResult<StatementID> {
-        let return_token = self.advance().unwrap().clone();
+        let _return_token = self.advance().unwrap().clone();
 
         let return_value = if Some(TokenKind::Semicolon) != self.get_current_kind() {
             let expression = self.parse_expression(Precedence::lowest())?;
@@ -49,7 +49,7 @@ impl Parser {
             )?
             .clone();
 
-        Ok(self.ast.add_statement_return(return_token, return_value))
+        Ok(self.ast.add_statement_return(return_value))
     }
 
     fn parse_statement_expression(&mut self) -> ParserResult<StatementID> {

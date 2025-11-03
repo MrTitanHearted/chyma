@@ -12,6 +12,7 @@ mod types;
 
 pub use parser_error::*;
 
+use crate::token::TokenStringInterner;
 #[allow(unused_imports)]
 pub use declarations::*;
 pub use expressions::*;
@@ -22,39 +23,39 @@ pub use types::*;
 
 type ParserResult<T> = Result<T, ParserError>;
 
-#[derive(Debug, Clone)]
-pub struct Parser {
-    ast: AST,
-    tokens: Vec<Token>,
+#[derive(Debug)]
+pub struct Parser<'a, 'b> {
+    interner: &'a TokenStringInterner,
+    ast: AST<'a>,
+    tokens: &'b [Token],
     current: usize,
 }
 
-impl Parser {
-    pub fn new() -> Self {
-        Self {
-            ast: AST::new(),
-            tokens: Vec::new(),
-            current: 0usize,
+impl<'a, 'b> Parser<'a, 'b> {
+    pub fn parse(interner: &'a TokenStringInterner, tokens: &'b [Token]) -> ParserResult<AST<'a>> {
+        let mut parser = Self::new(interner, tokens);
+
+        while !parser.is_at_end() {
+            parser.parse_declaration()?;
         }
+
+        Ok(parser.ast)
     }
 
-    pub fn parse(&mut self, tokens: &[Token]) -> ParserResult<AST> {
-        self.ast = AST::new();
-        self.tokens = tokens.to_vec();
-        self.current = 0usize;
-
-        while !self.is_at_end() {
-            self.parse_declaration()?;
+    fn new(interner: &'a TokenStringInterner, tokens: &'b [Token]) -> Self {
+        Self {
+            interner,
+            ast: AST::new(interner),
+            tokens,
+            current: 0usize,
         }
-
-        self.tokens.clear();
-        Ok(self.ast.clone())
     }
 
     fn consume(&mut self, kind: TokenKind, error: ParserError) -> ParserResult<&Token> {
         if Some(kind) == self.get_current_kind() {
             return Ok(self.advance().unwrap());
         }
+
         Err(error)
     }
 

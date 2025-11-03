@@ -1,4 +1,5 @@
-use std::{collections::HashMap, fmt};
+use crate::token::TokenStringInterner;
+use std::collections::HashMap;
 
 mod declarations;
 mod expressions;
@@ -13,7 +14,9 @@ pub use statements::*;
 pub use types::*;
 
 #[derive(Debug, Clone)]
-pub struct AST {
+pub struct AST<'a> {
+    interner: &'a TokenStringInterner,
+
     declarations: Vec<Declaration>,
     expressions: Vec<Expression>,
     statements: Vec<Statement>,
@@ -22,9 +25,11 @@ pub struct AST {
     type_lookup: HashMap<Type, usize>,
 }
 
-impl AST {
-    pub fn new() -> Self {
+impl<'a> AST<'a> {
+    pub fn new(interner: &'a TokenStringInterner) -> Self {
         let mut ast = Self {
+            interner,
+
             declarations: Vec::new(),
             expressions: Vec::new(),
             statements: Vec::new(),
@@ -85,11 +90,5 @@ impl AST {
         }
 
         size
-    }
-}
-
-impl fmt::Display for AST {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        write!(f, "{}", FlatASTFormatter::new(self))
     }
 }

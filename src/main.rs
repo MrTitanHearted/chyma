@@ -9,6 +9,8 @@ use std::{fs::File, io::Read};
 use clap::Parser;
 
 use crate::ast::{FlatASTFormatter, TreeASTFormatter};
+use crate::parser::{ParserError, ParserErrorFormatter};
+use crate::token::TokenStringInterner;
 
 #[derive(clap::Parser, Debug)]
 #[command(author, version, about, long_about = None)]
@@ -18,29 +20,30 @@ struct Args {
 }
 
 fn main() -> std::io::Result<()> {
-    if let Err(err) = main_entry() {
+    let mut interner = TokenStringInterner::new();
+
+    if let Err(err) = main_entry(&mut interner) {
+        if let Some(err) = err.downcast_ref::<ParserError>() {
+            panic!("{}", ParserErrorFormatter::new(&interner, err));
+        }
         panic!("{err}");
     }
 
     Ok(())
 }
 
-fn main_entry() -> Result<(), Box<dyn std::error::Error>> {
+fn main_entry(interner: &mut TokenStringInterner) -> Result<(), Box<dyn std::error::Error>> {
     let mut source = String::new();
-
-    println!("{}", size_of::<String>());
 
     let args = Args::parse();
     File::open(args.input)?.read_to_string(&mut source)?;
 
-    let tokens = Lexer::lex(&source)?;
+    let tokens = Lexer::lex(interner, &source)?;
 
-    let mut parser = parser::Parser::new();
-
-    let ast = parser.parse(&tokens)?;
+    let ast = parser::Parser::parse(interner, &tokens)?;
 
     println!("{}", TreeASTFormatter::new(&ast));
     println!("{}", FlatASTFormatter::new(&ast));
-    
+
     Ok(())
 }

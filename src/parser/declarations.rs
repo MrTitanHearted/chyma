@@ -4,7 +4,7 @@ use crate::{
     token::TokenKind,
 };
 
-impl Parser {
+impl<'a, 'b> Parser<'a, 'b> {
     pub(super) fn parse_declaration(&mut self) -> ParserResult<DeclarationID> {
         let current = self.get_current().unwrap().clone();
 
@@ -16,7 +16,7 @@ impl Parser {
     }
 
     fn parse_declaration_function(&mut self) -> ParserResult<DeclarationID> {
-        let fun_token = self.advance().unwrap().clone();
+        let _fun_token = self.advance().unwrap().clone();
 
         let identifier = self
             .consume(
@@ -25,7 +25,7 @@ impl Parser {
             )?
             .clone();
 
-        let left_paren = self
+        let _left_paren = self
             .consume(
                 TokenKind::LeftParen,
                 ParserError::expected_left_paren(self.get_current().unwrap().clone()),
@@ -71,7 +71,13 @@ impl Parser {
             }
         }
 
-        let right_paren = self
+        if Some(TokenKind::Identifier) == self.get_current_kind() {
+            return Err(ParserError::expected_comma(
+                self.get_current().unwrap().clone(),
+            ));
+        }
+
+        let _right_paren = self
             .consume(
                 TokenKind::RightParen,
                 ParserError::expected_right_paren(self.get_current().unwrap().clone()),
@@ -88,24 +94,19 @@ impl Parser {
 
         let body = self.parse_statement()?;
 
-        Ok(self.ast.add_declaration_function(
-            fun_token,
-            identifier,
-            left_paren,
-            parameters,
-            right_paren,
-            return_type,
-            body,
-        ))
+        Ok(self
+            .ast
+            .add_declaration_function(identifier, parameters, return_type, body))
     }
 
     fn parse_declaration_let(&mut self) -> ParserResult<DeclarationID> {
-        let let_token = self.advance().unwrap().clone();
+        let _let_token = self.advance().unwrap().clone();
 
-        let mut_token = if Some(TokenKind::Mut) == self.get_current_kind() {
-            Some(self.advance().unwrap().clone())
+        let is_mutable = if Some(TokenKind::Mut) == self.get_current_kind() {
+            self.advance();
+            true
         } else {
-            None
+            false
         };
 
         let identifier = self
@@ -115,7 +116,7 @@ impl Parser {
             )?
             .clone();
 
-        let type_token = if Some(TokenKind::Colon) == self.get_current_kind() {
+        let type_id = if Some(TokenKind::Colon) == self.get_current_kind() {
             let _colon = self.advance().unwrap().clone();
             let ty = self.parse_type()?;
             Some(ty)
@@ -138,7 +139,7 @@ impl Parser {
 
         Ok(self
             .ast
-            .add_declaration_let(let_token, mut_token, identifier, type_token, initializer))
+            .add_declaration_let(is_mutable, identifier, type_id, initializer))
     }
 
     fn parse_declaration_statement(&mut self) -> ParserResult<DeclarationID> {

@@ -1,12 +1,14 @@
 use std::fmt;
 
-use crate::token::{KEYWORDS, Token, TokenKind};
+use crate::token::{KEYWORDS, Token, TokenKind, TokenStringInterner};
 
 pub type LexerResult<T> = Result<T, LexerError>;
 
-#[derive(Debug, Clone)]
-pub struct Lexer<'a> {
-    source: &'a str,
+#[derive(Debug)]
+pub struct Lexer<'a, 'b> {
+    interner: &'a mut TokenStringInterner,
+
+    source: &'b str,
 
     start: usize,
     current: usize,
@@ -19,9 +21,9 @@ pub struct Lexer<'a> {
     tokens: Vec<Token>,
 }
 
-impl<'a> Lexer<'a> {
-    pub fn lex(source: &'a str) -> LexerResult<Vec<Token>> {
-        let mut lexer = Self::new(source);
+impl<'a, 'b> Lexer<'a, 'b> {
+    pub fn lex(interner: &'a mut TokenStringInterner, source: &'b str) -> LexerResult<Vec<Token>> {
+        let mut lexer = Self::new(interner, source);
 
         while !lexer.is_at_end() {
             lexer.start = lexer.current;
@@ -34,8 +36,10 @@ impl<'a> Lexer<'a> {
         Ok(lexer.tokens)
     }
 
-    fn new(source: &'a str) -> Self {
+    fn new(interner: &'a mut TokenStringInterner, source: &'b str) -> Self {
         Self {
+            interner,
+
             source,
 
             start: 0usize,
@@ -235,9 +239,11 @@ impl<'a> Lexer<'a> {
     }
 
     fn add_token(&mut self, kind: TokenKind) {
-        let line = self.line;
-        let column = self.column;
-        let lexeme = self.source[self.start..self.current].to_string();
+        let line = self.line as u32;
+        let column = self.column as u32;
+        let lexeme = &self.source[self.start..self.current];
+        let lexeme = self.interner.intern_str(lexeme);
+
         self.tokens.push(Token {
             kind,
             lexeme,

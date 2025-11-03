@@ -55,7 +55,7 @@ impl fmt::Display for PrimitiveType {
     }
 }
 
-impl AST {
+impl<'a> AST<'a> {
     pub fn intern_type_primitive(&mut self, primitive_type: PrimitiveType) -> TypeID {
         let _type = Type::PrimitiveType(primitive_type);
 

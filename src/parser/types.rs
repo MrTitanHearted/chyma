@@ -1,11 +1,15 @@
-use crate::{ast::{PrimitiveType, TypeID}, parser::{Parser, ParserError, ParserResult}, token::TokenKind};
+use crate::{
+    ast::{PrimitiveType, TypeID},
+    parser::{Parser, ParserError, ParserResult},
+    token::TokenKind,
+};
 
-impl Parser {
+impl<'a, 'b> Parser<'a, 'b> {
     pub(super) fn parse_type(&mut self) -> ParserResult<TypeID> {
         let current = self.get_current().unwrap().clone();
 
         match current.kind {
-            TokenKind::Void | TokenKind::Identifier if current.is_primitive_type() => {
+            TokenKind::Void | TokenKind::Identifier if current.is_primitive_type(self.interner) => {
                 self.parse_type_primitive()
             }
 
@@ -16,7 +20,9 @@ impl Parser {
     }
 
     fn parse_type_primitive(&mut self) -> ParserResult<TypeID> {
-        let lexeme = self.advance().unwrap().lexeme.as_str();
+        let lexeme = self
+            .interner
+            .get_str_or_empty(self.advance().unwrap().lexeme);
 
         let primitive_type = match lexeme {
             "void" => PrimitiveType::Void,
