@@ -195,11 +195,9 @@ impl<'ast, 'interner> TreeASTFormatter<'ast, 'interner> {
 
                     let has_init = initializer.is_some();
 
-                    if let Some(type_id) = type_id {
-                        let prefix = if has_init { "├─" } else { "└─" };
-                        write!(f, "{}{} type: ", indent_str, prefix)?;
-                        self.format_type(f, *type_id, indent + 1)?;
-                    }
+                    let prefix = if has_init { "├─" } else { "└─" };
+                    write!(f, "{}{} type: ", indent_str, prefix)?;
+                    self.format_type(f, *type_id, indent + 1)?;
 
                     if let Some(expr_id) = initializer {
                         write!(f, "{}└─ init: ", indent_str)?;
@@ -403,13 +401,11 @@ impl<'ast, 'interner> fmt::Display for FlatASTFormatter<'ast, 'interner> {
                     } => {
                         write!(
                             f,
-                            "Let         {}{}",
+                            "Let         {}{}: type[{}]",
                             if *is_mutable { "mut " } else { "" },
-                            self.ast.interner.get_str_or_empty(identifier.lexeme)
+                            self.ast.interner.get_str_or_empty(identifier.lexeme),
+                            type_id,
                         )?;
-                        if let Some(type_id) = type_id {
-                            write!(f, ": type[{}]", type_id)?;
-                        }
                         if let Some(expr_id) = initializer {
                             write!(f, " = expression[{}]", expr_id)?;
                         }

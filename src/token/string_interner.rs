@@ -4,7 +4,7 @@ use crate::token::Token;
 use std::collections::HashMap;
 use std::fmt::{Display, Formatter};
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TokenStringID(pub u32);
 
 #[derive(Debug)]

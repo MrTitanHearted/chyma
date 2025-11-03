@@ -116,13 +116,12 @@ impl<'a, 'b> Parser<'a, 'b> {
             )?
             .clone();
 
-        let type_id = if Some(TokenKind::Colon) == self.get_current_kind() {
-            let _colon = self.advance().unwrap().clone();
-            let ty = self.parse_type()?;
-            Some(ty)
-        } else {
-            None
-        };
+        let _colon = self.consume(
+            TokenKind::Colon,
+            ParserError::expected_colon(*self.get_current().unwrap()),
+        )?;
+
+        let type_id = self.parse_type()?;
 
         let initializer = if Some(TokenKind::Equal) == self.get_current_kind() {
             let _equal = self.advance().unwrap().clone();

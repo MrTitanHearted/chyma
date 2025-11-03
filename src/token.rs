@@ -46,7 +46,7 @@ pub static KEYWORDS: LazyLock<HashMap<&'static str, TokenKind>> = LazyLock::new(
     m
 });
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Hash, Clone, Copy, PartialEq, Eq)]
 pub struct Token {
     pub kind: TokenKind,
     pub lexeme: TokenStringID,

@@ -59,6 +59,14 @@ impl<'a> AST<'a> {
         ast
     }
 
+    pub fn get_interner(&self) -> &'a TokenStringInterner {
+        self.interner
+    }
+
+    pub fn get_declarations_count(&self) -> u32 {
+        self.declarations.len() as u32
+    }
+
     pub fn get_total_size(&self) -> usize {
         let mut size = size_of::<AST>();
 

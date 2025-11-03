@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::{ast::AST, token::Token};
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct ExpressionID(pub u32);
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -69,6 +69,38 @@ impl<'a> AST<'a> {
     pub fn get_expression(&self, id: ExpressionID) -> Option<&Expression> {
         self.expressions.get(id.0 as usize)
     }
+}
+
+impl Expression {
+    pub fn accept_visitor<T>(&self, visitor: &mut impl IExpressionVisitor<T>) -> T {
+        match self {
+            Expression::Binary {
+                left,
+                operator,
+                right,
+            } => visitor.visit_expression_binary(left, operator, right),
+            Expression::Unary { operator, right } => {
+                visitor.visit_expression_unary(operator, right)
+            }
+            Expression::Literal { token } => visitor.visit_expression_literal(token),
+            Expression::Identifier { token } => visitor.visit_expression_identifier(token),
+        }
+    }
+}
+
+pub trait IExpressionVisitor<T> {
+    fn visit_expression_binary(
+        &mut self,
+        left: &ExpressionID,
+        operator: &Token,
+        right: &ExpressionID,
+    ) -> T;
+
+    fn visit_expression_unary(&mut self, operator: &Token, right: &ExpressionID) -> T;
+
+    fn visit_expression_literal(&mut self, token: &Token) -> T;
+
+    fn visit_expression_identifier(&mut self, token: &Token) -> T;
 }
 
 impl fmt::Display for ExpressionID {

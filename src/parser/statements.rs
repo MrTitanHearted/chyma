@@ -33,7 +33,7 @@ impl<'a, 'b> Parser<'a, 'b> {
     }
 
     fn parse_statement_return(&mut self) -> ParserResult<StatementID> {
-        let _return_token = self.advance().unwrap().clone();
+        let return_token = self.advance().unwrap().clone();
 
         let return_value = if Some(TokenKind::Semicolon) != self.get_current_kind() {
             let expression = self.parse_expression(Precedence::lowest())?;
@@ -49,7 +49,7 @@ impl<'a, 'b> Parser<'a, 'b> {
             )?
             .clone();
 
-        Ok(self.ast.add_statement_return(return_value))
+        Ok(self.ast.add_statement_return(return_token, return_value))
     }
 
     fn parse_statement_expression(&mut self) -> ParserResult<StatementID> {

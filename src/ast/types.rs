@@ -2,7 +2,7 @@ use std::fmt;
 
 use crate::ast::AST;
 
-#[derive(Debug, Default, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
+#[derive(Debug, Default, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TypeID(pub usize);
 
 #[derive(Debug, Clone, Hash, PartialEq, Eq)]
@@ -71,10 +71,22 @@ impl<'a> AST<'a> {
 
         TypeID(id)
     }
-    
+
     pub fn get_type(&self, id: TypeID) -> Option<&Type> {
         self.types.get(id.0)
     }
+}
+
+impl Type {
+    pub fn accept_visitor<T>(&self, visitor: &mut impl ITypeVisitor<T>) -> T {
+        match self {
+            Type::PrimitiveType(primitive_type) => visitor.visit_type_primitive(primitive_type),
+        }
+    }
+}
+
+pub trait ITypeVisitor<T> {
+    fn visit_type_primitive(&self, primitive_type: &PrimitiveType) -> T;
 }
 
 impl fmt::Display for TypeID {
