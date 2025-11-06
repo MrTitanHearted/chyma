@@ -5,12 +5,12 @@ use crate::ast::AST;
 #[derive(Debug, Default, Hash, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct TypeID(pub usize);
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum Type {
     PrimitiveType(PrimitiveType),
 }
 
-#[derive(Debug, Clone, Hash, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Hash, PartialEq, Eq)]
 pub enum PrimitiveType {
     Void,
     Bool,
@@ -74,6 +74,12 @@ impl<'a> AST<'a> {
 
     pub fn get_type(&self, id: TypeID) -> Option<&Type> {
         self.types.get(id.0)
+    }
+
+    pub fn get_primitive_type_id(&self, primitive_type: PrimitiveType) -> Option<TypeID> {
+        self.type_lookup
+            .get(&Type::PrimitiveType(primitive_type))
+            .map(|index| TypeID(*index))
     }
 }
 

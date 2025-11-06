@@ -255,8 +255,19 @@ impl<'ast, 'interner> IExpressionVisitor<SemanticResolverResult>
     fn visit_expression_identifier(&mut self, token: &Token) -> SemanticResolverResult {
         let mut found = false;
         for scope in self.scopes.iter().rev() {
-            if scope.contains_key(&token.lexeme) {
+            if let Some(metadata) = scope.get(&token.lexeme) {
                 found = true;
+
+                if !metadata.is_assigned {
+                    return Err(SemanticResolverError::new(
+                        *token,
+                        format!(
+                            "Variable '{}' is delcared, but is not assigned.",
+                            self.ast.get_interner().get_str_or_empty(token.lexeme)
+                        ),
+                    ));
+                }
+
                 break;
             }
         }
@@ -348,7 +359,7 @@ impl<'ast, 'interner> IStatementVisitor<SemanticResolverResult>
         self.begin_scope();
 
         for declaration in declarations {
-                self.visited_declarations.insert(*declaration);
+            self.visited_declarations.insert(*declaration);
             if let Some(declaration) = self.ast.get_declaration(*declaration) {
                 declaration.accept_visitor(self)?;
             }

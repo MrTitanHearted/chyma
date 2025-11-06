@@ -47,8 +47,9 @@ fn main_entry(interner: &mut TokenStringInterner) -> Result<(), Box<dyn std::err
 
     println!("{}", TreeASTFormatter::new(&ast));
     println!("{}", FlatASTFormatter::new(&ast));
-    
+
     SemanticResolver::resolve(&ast)?;
+    TypeResolver::resolve(&ast)?;
 
     Ok(())
 }

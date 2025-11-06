@@ -1,10 +1,7 @@
+fun add(a: i32, b: bool): i32 {
+    return a + b;
+}
+
 fun main() {
-    let mut a: i32 = 5;
-    a = 5;
-    {
-        let mut a: u32 = 5;
-        a += 6;
-    }
-    
-    return a;
+
 }
