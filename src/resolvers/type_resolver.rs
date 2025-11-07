@@ -1,12 +1,9 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt,
-};
+use std::{collections::HashMap, fmt};
 
 use crate::{
     ast::{
-        AST, DeclarationID, IDeclarationVisitor, IExpressionVisitor, IStatementVisitor,
-        ITypeVisitor, PrimitiveType, Type, TypeID,
+        AST, DeclarationID, ExpressionID, IDeclarationVisitor, IExpressionVisitor,
+        IStatementVisitor, ITypeVisitor, PrimitiveType, Type, TypeID,
     },
     token::{Token, TokenKind, TokenStringID},
 };
@@ -15,37 +12,37 @@ use crate::{
 pub struct TypeResolver<'ast, 'interner> {
     ast: &'ast AST<'interner>,
     scopes: Vec<HashMap<TokenStringID, TypeID>>,
-    visited_declarations: HashSet<DeclarationID>,
 
     current_function_expected_return_type_id: Option<TypeID>,
     current_function_found_return: bool,
+
+    expression_type_map: HashMap<ExpressionID, TypeID>,
 }
 
 impl<'ast, 'interner> TypeResolver<'ast, 'interner> {
-    pub fn resolve(ast: &'ast AST<'interner>) -> TypeResolverResult<()> {
+    pub fn resolve(ast: &'ast AST<'interner>) -> TypeResolverResult<HashMap<ExpressionID, TypeID>> {
         let mut resolver = TypeResolver::new(ast);
 
-        for declaration in (0..resolver.ast.get_declarations_count()).rev() {
-            let declaration = DeclarationID(declaration);
-            if !resolver.visited_declarations.contains(&declaration) {
-                resolver.visited_declarations.insert(declaration);
-                if let Some(declaration) = resolver.ast.get_declaration(declaration) {
-                    declaration.accept_visitor(&mut resolver)?;
-                }
-            }
+        for declaration_id in resolver.ast.get_global_declarations() {
+            resolver
+                .ast
+                .get_declaration(*declaration_id)
+                .unwrap()
+                .accept_visitor(&mut resolver)?;
         }
 
-        Ok(())
+        Ok(resolver.expression_type_map)
     }
 
     fn new(ast: &'ast AST<'interner>) -> Self {
         Self {
             ast,
             scopes: vec![HashMap::new()],
-            visited_declarations: HashSet::new(),
 
             current_function_expected_return_type_id: None,
             current_function_found_return: false,
+
+            expression_type_map: HashMap::new(),
         }
     }
 
@@ -109,34 +106,33 @@ impl<'ast, 'interner> TypeResolver<'ast, 'interner> {
             | TokenKind::Star
             | TokenKind::Slash
             | TokenKind::Percent
-
             | TokenKind::Pipe
             | TokenKind::Caret
-            | TokenKind::Ampersand => return match self.ast.get_type(left).unwrap() {
-                Type::PrimitiveType(primitive_type) => match primitive_type {
-                    PrimitiveType::I8
-                    | PrimitiveType::I16
-                    | PrimitiveType::I32
-                    | PrimitiveType::I64
-                    | PrimitiveType::I128
-                    | PrimitiveType::ISize
-                    | PrimitiveType::U8
-                    | PrimitiveType::U16
-                    | PrimitiveType::U32
-                    | PrimitiveType::U64
-                    | PrimitiveType::U128
-                    | PrimitiveType::USize => Ok(left),
-                    _ => {
-                        Err(TypeResolverError::new(
+            | TokenKind::Ampersand => {
+                return match self.ast.get_type(left).unwrap() {
+                    Type::PrimitiveType(primitive_type) => match primitive_type {
+                        PrimitiveType::I8
+                        | PrimitiveType::I16
+                        | PrimitiveType::I32
+                        | PrimitiveType::I64
+                        | PrimitiveType::I128
+                        | PrimitiveType::ISize
+                        | PrimitiveType::U8
+                        | PrimitiveType::U16
+                        | PrimitiveType::U32
+                        | PrimitiveType::U64
+                        | PrimitiveType::U128
+                        | PrimitiveType::USize => Ok(left),
+                        _ => Err(TypeResolverError::new(
                             operator,
                             format!(
                                 "'{}' operator expects signed or unsigned integer primitive types.",
                                 self.ast.get_interner().get_str_or_empty(operator.lexeme)
                             ),
-                        ))
-                    }
-                },
-            },
+                        )),
+                    },
+                };
+            }
 
             _ => {
                 return Err(TypeResolverError::new(
@@ -226,6 +222,7 @@ impl<'ast, 'interner> IDeclarationVisitor<TypeResolverResult<()>>
                     ));
                 }
             }
+            self.expression_type_map.insert(*initializer, *type_id);
         }
 
         self.put_type(identifier.lexeme, *type_id);
@@ -304,6 +301,9 @@ impl<'ast, 'interner> IExpressionVisitor<TypeResolverResult<TypeID>>
             .unwrap()
             .accept_visitor(self)?;
 
+        self.expression_type_map.insert(*left, left_type_id);
+        self.expression_type_map.insert(*right, right_type_id);
+
         let type_id = self.get_type_binary_expression(left_type_id, *operator, right_type_id)?;
 
         self.ast
@@ -332,7 +332,7 @@ impl<'ast, 'interner> IExpressionVisitor<TypeResolverResult<TypeID>>
 
         self.ast.get_type(type_id).unwrap().accept_visitor(self)?;
 
-        match self.ast.get_type(type_id).unwrap() {
+        let type_id = match self.ast.get_type(type_id).unwrap() {
             Type::PrimitiveType(primitive_type) => match primitive_type {
                 PrimitiveType::I8
                 | PrimitiveType::I16
@@ -345,14 +345,20 @@ impl<'ast, 'interner> IExpressionVisitor<TypeResolverResult<TypeID>>
                 | PrimitiveType::U32
                 | PrimitiveType::U64
                 | PrimitiveType::U128
-                | PrimitiveType::USize => Ok(type_id),
+                | PrimitiveType::USize => type_id,
 
-                _ => Err(TypeResolverError::new(
-                    *operator,
-                    format!("will right some better error message later"),
-                )),
+                _ => {
+                    return Err(TypeResolverError::new(
+                        *operator,
+                        format!("will right some better error message later"),
+                    ));
+                }
             },
-        }
+        };
+
+        self.expression_type_map.insert(*right, type_id);
+
+        Ok(type_id)
     }
 
     fn visit_expression_literal(&mut self, token: &Token) -> TypeResolverResult<TypeID> {
@@ -369,15 +375,13 @@ impl<'ast, 'interner> IStatementVisitor<TypeResolverResult<()>> for TypeResolver
         &mut self,
         expression: &crate::ast::ExpressionID,
     ) -> TypeResolverResult<()> {
-        self.ast
-            .get_type(
-                self.ast
-                    .get_expression(*expression)
-                    .unwrap()
-                    .accept_visitor(self)?,
-            )
+        let type_id = self
+            .ast
+            .get_expression(*expression)
             .unwrap()
             .accept_visitor(self)?;
+
+        self.expression_type_map.insert(*expression, type_id);
 
         Ok(())
     }
@@ -411,6 +415,10 @@ impl<'ast, 'interner> IStatementVisitor<TypeResolverResult<()>> for TypeResolver
             ));
         }
 
+        self.expression_type_map.insert(*assignee, assignee_type_id);
+        self.expression_type_map
+            .insert(*assignment_value, assignment_value_type_id);
+
         Ok(())
     }
 
@@ -418,7 +426,6 @@ impl<'ast, 'interner> IStatementVisitor<TypeResolverResult<()>> for TypeResolver
         self.push_scope();
 
         for declaration in declarations {
-            self.visited_declarations.insert(*declaration);
             self.ast
                 .get_declaration(*declaration)
                 .unwrap()
@@ -448,6 +455,9 @@ impl<'ast, 'interner> IStatementVisitor<TypeResolverResult<()>> for TypeResolver
                     format!("Wrong return type for function"),
                 ));
             }
+
+            self.expression_type_map
+                .insert(*expression_id, return_type_id);
 
             self.current_function_found_return = true;
         }

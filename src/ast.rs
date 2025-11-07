@@ -23,6 +23,8 @@ pub struct AST<'a> {
     types: Vec<Type>,
 
     type_lookup: HashMap<Type, usize>,
+
+    global_declarations: Vec<DeclarationID>,
 }
 
 impl<'a> AST<'a> {
@@ -36,6 +38,8 @@ impl<'a> AST<'a> {
             types: Vec::new(),
 
             type_lookup: HashMap::new(),
+
+            global_declarations: Vec::new(),
         };
 
         ast.intern_type_primitive(PrimitiveType::Void);
@@ -63,8 +67,29 @@ impl<'a> AST<'a> {
         self.interner
     }
 
-    pub fn get_declarations_count(&self) -> u32 {
-        self.declarations.len() as u32
+    pub fn get_global_declarations(&self) -> &[DeclarationID] {
+        &self.global_declarations
+    }
+
+    pub fn set_global_declarations(&mut self) {
+        self.global_declarations.clear();
+
+        let mut local_declarations = std::collections::HashSet::new();
+
+        for stmt in &self.statements {
+            if let Statement::Block { declarations } = stmt {
+                for decl in declarations {
+                    local_declarations.insert(*decl);
+                }
+            }
+        }
+
+        for (i, _) in self.declarations.iter().enumerate() {
+            let id = DeclarationID(i as u32);
+            if !local_declarations.contains(&id) {
+                self.global_declarations.push(id);
+            }
+        }
     }
 
     pub fn get_total_size(&self) -> usize {

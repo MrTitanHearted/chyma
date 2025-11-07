@@ -1,7 +1,4 @@
-use std::{
-    collections::{HashMap, HashSet},
-    fmt,
-};
+use std::{collections::HashMap, fmt};
 
 use crate::{
     ast::{
@@ -16,8 +13,6 @@ pub struct SemanticResolver<'ast, 'interner> {
     ast: &'ast AST<'interner>,
     scopes: Vec<HashMap<TokenStringID, VariableMetadata>>,
     current_function_type: FunctionType,
-
-    visited_declarations: HashSet<DeclarationID>,
 }
 
 #[derive(Debug)]
@@ -37,14 +32,12 @@ impl<'ast, 'interner> SemanticResolver<'ast, 'interner> {
     pub fn resolve(ast: &'ast AST<'interner>) -> SemanticResolverResult {
         let mut resolver = Self::new(ast);
 
-        for i in (0..resolver.ast.get_declarations_count()).rev() {
-            let declaration_id = DeclarationID(i);
-            if !resolver.visited_declarations.contains(&declaration_id)
-                && let Some(declaration) = resolver.ast.get_declaration(declaration_id)
-            {
-                resolver.visited_declarations.insert(declaration_id);
-                declaration.accept_visitor(&mut resolver)?;
-            }
+        for declaration_id in resolver.ast.get_global_declarations() {
+            resolver
+                .ast
+                .get_declaration(*declaration_id)
+                .unwrap()
+                .accept_visitor(&mut resolver)?;
         }
 
         Ok(())
@@ -55,8 +48,6 @@ impl<'ast, 'interner> SemanticResolver<'ast, 'interner> {
             ast,
             scopes: vec![HashMap::new()],
             current_function_type: FunctionType::None,
-
-            visited_declarations: HashSet::new(),
         }
     }
 
@@ -359,7 +350,6 @@ impl<'ast, 'interner> IStatementVisitor<SemanticResolverResult>
         self.begin_scope();
 
         for declaration in declarations {
-            self.visited_declarations.insert(*declaration);
             if let Some(declaration) = self.ast.get_declaration(*declaration) {
                 declaration.accept_visitor(self)?;
             }

@@ -38,6 +38,8 @@ impl<'a, 'b> Parser<'a, 'b> {
         while !parser.is_at_end() {
             parser.parse_declaration()?;
         }
+        
+        parser.ast.set_global_declarations();
 
         Ok(parser.ast)
     }
